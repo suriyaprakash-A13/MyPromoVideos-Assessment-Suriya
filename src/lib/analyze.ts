@@ -1,30 +1,7 @@
-import dayjs from "dayjs";
 import { CompanyAnalysis, CompanyScore, CompanyVideoData, ReportPayload } from "@/lib/types";
-
-type StrategyCategory =
-  | "Educational"
-  | "Product Marketing"
-  | "Short-form"
-  | "Customer Stories"
-  | "Behind the Scenes"
-  | "Entertainment"
-  | "Thought Leadership"
-  | "Tutorials"
-  | "Case Studies"
-  | "Community Content";
-
-const STRATEGY_CATEGORIES: StrategyCategory[] = [
-  "Educational",
-  "Product Marketing",
-  "Short-form",
-  "Customer Stories",
-  "Behind the Scenes",
-  "Entertainment",
-  "Thought Leadership",
-  "Tutorials",
-  "Case Studies",
-  "Community Content"
-];
+import { STRATEGY_CATEGORIES, StrategyCategory, summarizeStrategyMix } from "@/lib/strategy";
+import { parseVideoDate } from "@/lib/dates";
+import { analyzeBestTimeToPost } from "@/lib/postingTime";
 
 const STOPWORDS = new Set([
   "the",
@@ -90,133 +67,13 @@ function extractTopics(titles: string[]): string[] {
     .map(([topic]) => topic);
 }
 
-function normalizeText(value: string): string {
-  return value.toLowerCase();
-}
-
-function parseDurationSeconds(duration?: string): number | undefined {
-  if (!duration) {
-    return undefined;
-  }
-
-  const match = duration.match(/P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/i);
-  if (!match) {
-    return undefined;
-  }
-
-  const days = Number(match[1] ?? 0);
-  const hours = Number(match[2] ?? 0);
-  const minutes = Number(match[3] ?? 0);
-  const seconds = Number(match[4] ?? 0);
-
-  return days * 86400 + hours * 3600 + minutes * 60 + seconds;
-}
-
-function classifyVideo(video: CompanyVideoData["videos"][number]): StrategyCategory[] {
-  const text = normalizeText([video.title, video.description ?? "", ...(video.tags ?? [])].join(" "));
-  const categories = new Set<StrategyCategory>();
-  const durationSeconds = parseDurationSeconds(video.duration);
-
-  if (durationSeconds !== undefined && durationSeconds <= 60) {
-    categories.add("Short-form");
-  }
-
-  if (/(shorts?|reel|clip|snippet|trailer|teaser)/i.test(text)) {
-    categories.add("Short-form");
-  }
-
-  if (/(how to|guide|explainer|explained|learn|what is|intro|basics|tips|best practices)/i.test(text)) {
-    categories.add("Educational");
-  }
-
-  if (/(tutorial|step by step|walkthrough|demo|setup|build|create|install|use)/i.test(text)) {
-    categories.add("Tutorials");
-  }
-
-  if (/(customer|client|story|testimonial|success|case study|case studies|results|partner spotlight)/i.test(text)) {
-    categories.add("Customer Stories");
-    categories.add("Case Studies");
-  }
-
-  if (/(behind the scenes|bts|day in the life|making of|studio|production|office|team)/i.test(text)) {
-    categories.add("Behind the Scenes");
-  }
-
-  if (/(thought leadership|future of|industry|market|trend|insight|strategy|analysis|perspective|vision)/i.test(text)) {
-    categories.add("Thought Leadership");
-  }
-
-  if (/(community|event|live|qa|q&a|webinar|panel|ama|ask me anything|conference|meetup)/i.test(text)) {
-    categories.add("Community Content");
-  }
-
-  if (/(launch|new feature|product update|announcement|introducing|promo|campaign|available now|buy now)/i.test(text)) {
-    categories.add("Product Marketing");
-  }
-
-  if (/(funny|behind|entertainment|music|challenge|reaction|highlight|recap|story|storytime)/i.test(text)) {
-    categories.add("Entertainment");
-  }
-
-  if (!categories.size) {
-    categories.add("Product Marketing");
-  }
-
-  return [...categories];
-}
-
-function summarizeStrategyMix(company: CompanyVideoData): Record<StrategyCategory, number> {
-  const mix = Object.fromEntries(STRATEGY_CATEGORIES.map((category) => [category, 0])) as Record<StrategyCategory, number>;
-
-  for (const video of company.videos) {
-    const categories = classifyVideo(video);
-    for (const category of categories) {
-      mix[category] += 1;
-    }
-  }
-
-  return mix;
-}
-
-function parseVideoDate(dateText?: string): dayjs.Dayjs | undefined {
-  if (!dateText) {
-    return undefined;
-  }
-
-  const direct = dayjs(dateText);
-  if (direct.isValid()) {
-    return direct;
-  }
-
-  const relative = dateText.toLowerCase();
-  const match = relative.match(/(\d+)\s+(day|week|month|year)/);
-
-  if (!match) {
-    return undefined;
-  }
-
-  const amount = Number(match[1]);
-  const unit = match[2];
-
-  if (unit.startsWith("day")) {
-    return dayjs().subtract(amount, "day");
-  }
-  if (unit.startsWith("week")) {
-    return dayjs().subtract(amount, "week");
-  }
-  if (unit.startsWith("month")) {
-    return dayjs().subtract(amount, "month");
-  }
-  return dayjs().subtract(amount, "year");
-}
-
 function inferPostingCadence(videos: CompanyVideoData["videos"]): {
   uploadsPerWeek: number;
   videosPerMonth: number;
   consistency: number;
   inactivePeriods: string[];
 } {
-  const dates = videos.map((video) => parseVideoDate(video.publishedAt)).filter(Boolean) as dayjs.Dayjs[];
+  const dates = videos.map((video) => parseVideoDate(video.publishedAt)).filter(Boolean) as import("dayjs").Dayjs[];
 
   if (dates.length < 2) {
     const uploadsPerWeek = videos.length ? Math.max(0.25, videos.length / 4) : 0;
@@ -544,6 +401,8 @@ export function buildReport(primaryCompany: string, competitors: string[], compa
 
   const dedupedGaps = [...new Set(gaps)].slice(0, 8);
 
+  const bestTimeToPost = analyzeBestTimeToPost(companies);
+
   const recommendations = [
     "Build an educational pillar with explainers, tutorials, and thought-leadership videos to increase authority and search-driven discovery.",
     "Introduce customer-story and case-study content to strengthen trust, proof, and conversion intent.",
@@ -554,6 +413,17 @@ export function buildReport(primaryCompany: string, competitors: string[], compa
     "Use stronger hooks, clearer calls to action, and more opinion-led framing to improve interaction efficiency and watch depth."
   ];
 
+  if (bestTimeToPost && bestTimeToPost.confidence !== "low") {
+    recommendations.unshift(
+      `Schedule priority uploads on ${bestTimeToPost.bestDayRange}${bestTimeToPost.bestHourRange ? ` around ${bestTimeToPost.bestHourRange}` : ""} — top performers show ${bestTimeToPost.engagementMultiplier}× engagement lift.`
+    );
+  }
+
+  const summaryWithTiming = [...executiveSummary];
+  if (bestTimeToPost && bestTimeToPost.engagementMultiplier >= 1.2) {
+    summaryWithTiming.push(bestTimeToPost.headline);
+  }
+
   return {
     requestedAt: new Date().toISOString(),
     primaryCompany,
@@ -561,10 +431,11 @@ export function buildReport(primaryCompany: string, competitors: string[], compa
     companies,
     analysis: analyses,
     scores,
-    executiveSummary,
+    executiveSummary: summaryWithTiming,
     recommendations,
     gaps: dedupedGaps,
     rankingMethod:
-      "Weighted score: Subscribers 25%, Avg Views 20%, Engagement Rate 20%, Posting Frequency 15%, Consistency 10%, Content Diversity 10%. Each metric is max-normalized across analyzed companies."
+      "Weighted score: Subscribers 25%, Avg Views 20%, Engagement Rate 20%, Posting Frequency 15%, Consistency 10%, Content Diversity 10%. Each metric is max-normalized across analyzed companies.",
+    bestTimeToPost
   };
 }

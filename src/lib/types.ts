@@ -70,6 +70,16 @@ export interface CompanyAnalysis {
   notes: string[];
 }
 
+export interface BestTimeToPostInsight {
+  headline: string;
+  bestDayRange: string;
+  bestHourRange: string | null;
+  engagementMultiplier: number;
+  sampleSize: number;
+  confidence: "low" | "medium" | "high";
+  details: string[];
+}
+
 export interface ReportPayload {
   requestedAt: string;
   primaryCompany: string;
@@ -81,4 +91,5 @@ export interface ReportPayload {
   recommendations: string[];
   gaps: string[];
   rankingMethod: string;
+  bestTimeToPost?: BestTimeToPostInsight;
 }

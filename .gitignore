@@ -2,6 +2,13 @@ node_modules
 .next
 out
 .env*
+!.env.example
 *.log
 .DS_Store
 coverage
+tmp_env/
+.template-extract/
+tsconfig.tsbuildinfo
+test-output*.pptx
+empty-root.pptx
+~$*.pptx
