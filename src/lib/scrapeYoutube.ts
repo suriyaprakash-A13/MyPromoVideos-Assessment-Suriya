@@ -1,7 +1,12 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { CompanyVideoData, VideoMetric } from "@/lib/types";
-import { fetchCompanyVideoDataViaApi, isYoutubeApiEnabled } from "@/lib/youtubeApi";
+import {
+  enrichDiscovery,
+  fetchChannelMetadataViaApi,
+  fetchCompanyVideoDataViaApi,
+  isYoutubeApiEnabled
+} from "@/lib/youtubeApi";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -128,12 +133,40 @@ function pickStatsFromHtml(html: string): { subscribers?: number; totalVideos?: 
   };
 }
 
-export async function extractCompanyVideoData(discovery: CompanyVideoData["discovery"]): Promise<CompanyVideoData> {
+async function attachChannelMetadata(
+  data: CompanyVideoData,
+  discovery: CompanyVideoData["discovery"]
+): Promise<CompanyVideoData> {
+  if (!isYoutubeApiEnabled() || !discovery.channelId || data.channelCreatedAt) {
+    return { ...data, discovery };
+  }
+
+  const metadata = await fetchChannelMetadataViaApi(discovery.channelId);
+  if (!metadata) {
+    return { ...data, discovery };
+  }
+
+  return {
+    ...data,
+    discovery,
+    channelCreatedAt: data.channelCreatedAt ?? metadata.channelCreatedAt,
+    channelDescription: data.channelDescription ?? metadata.channelDescription,
+    channelThumbnailUrl: data.channelThumbnailUrl ?? metadata.channelThumbnailUrl,
+    subscribers: data.subscribers ?? metadata.subscribers,
+    totalVideos: data.totalVideos ?? metadata.totalVideos,
+    channelViews: data.channelViews ?? metadata.channelViews
+  };
+}
+
+export async function extractCompanyVideoData(discoveryIn: CompanyVideoData["discovery"]): Promise<CompanyVideoData> {
+  const discovery = await enrichDiscovery(discoveryIn);
+
   if (isYoutubeApiEnabled() && discovery.channelId) {
     try {
       const apiData = await fetchCompanyVideoDataViaApi(discovery);
       return {
         ...apiData,
+        discovery,
         notes: apiData.notes.length ? apiData.notes : ["Fetched via YouTube Data API v3."]
       };
     } catch (e) {
@@ -187,16 +220,19 @@ export async function extractCompanyVideoData(discovery: CompanyVideoData["disco
       notes.push("Could not fetch videos page.");
     }
 
-    return {
-      company: discovery.company,
-      discovery,
-      subscribers: channelStats.subscribers,
-      totalVideos: channelStats.totalVideos,
-      channelDescription: channelStats.description,
-      videos,
-      dataQuality: videos.length > 6 ? "full" : videos.length > 0 ? "partial" : "limited",
-      notes
-    };
+    return attachChannelMetadata(
+      {
+        company: discovery.company,
+        discovery,
+        subscribers: channelStats.subscribers,
+        totalVideos: channelStats.totalVideos,
+        channelDescription: channelStats.description,
+        videos,
+        dataQuality: videos.length > 6 ? "full" : videos.length > 0 ? "partial" : "limited",
+        notes
+      },
+      discovery
+    );
   } catch (error) {
     return {
       company: discovery.company,

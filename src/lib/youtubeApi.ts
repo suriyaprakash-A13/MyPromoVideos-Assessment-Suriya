@@ -215,6 +215,90 @@ export function isYoutubeApiEnabled(): boolean {
   return hasApiKey();
 }
 
+/** Resolve UC… id from /channel/… or @handle URLs when API search did not return an id. */
+export async function resolveChannelIdFromUrl(channelUrl?: string): Promise<string | undefined> {
+  if (!channelUrl) {
+    return undefined;
+  }
+
+  const directMatch = channelUrl.match(/youtube\.com\/channel\/(UC[A-Za-z0-9_-]+)/i);
+  if (directMatch?.[1]) {
+    return directMatch[1];
+  }
+
+  if (!hasApiKey()) {
+    return undefined;
+  }
+
+  const handleMatch = channelUrl.match(/youtube\.com\/@([^/?#]+)/i);
+  if (!handleMatch?.[1]) {
+    return undefined;
+  }
+
+  const params = new URLSearchParams({
+    part: "id",
+    forHandle: decodeURIComponent(handleMatch[1]),
+    key: API_KEY ?? ""
+  });
+
+  try {
+    const payload = await apiGet<{ items?: ChannelItem[] }>(`${API_BASE}/channels?${params.toString()}`);
+    return payload.items?.[0]?.id;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function enrichDiscovery(discovery: CompanyDiscovery): Promise<CompanyDiscovery> {
+  if (discovery.channelId) {
+    return {
+      ...discovery,
+      channelUrl: discovery.channelUrl ?? `https://www.youtube.com/channel/${discovery.channelId}`
+    };
+  }
+
+  const channelId = await resolveChannelIdFromUrl(discovery.channelUrl);
+  if (!channelId) {
+    return discovery;
+  }
+
+  return {
+    ...discovery,
+    channelId,
+    channelUrl: `https://www.youtube.com/channel/${channelId}`
+  };
+}
+
+export async function fetchChannelMetadataViaApi(
+  channelId: string
+): Promise<Pick<
+  CompanyVideoData,
+  "channelCreatedAt" | "channelDescription" | "subscribers" | "totalVideos" | "channelViews" | "channelThumbnailUrl"
+> | null> {
+  if (!hasApiKey()) {
+    return null;
+  }
+
+  try {
+    const payload = await apiGet<{ items?: ChannelItem[] }>(buildChannelsUrl([channelId], ["snippet", "statistics"]));
+    const channel = payload.items?.[0];
+    if (!channel) {
+      return null;
+    }
+
+    return {
+      channelCreatedAt: channel.snippet?.publishedAt,
+      channelDescription: channel.snippet?.description,
+      channelThumbnailUrl: chooseThumbnail(channel.snippet?.thumbnails),
+      subscribers: toNumber(channel.statistics?.subscriberCount),
+      totalVideos: toNumber(channel.statistics?.videoCount),
+      channelViews: toNumber(channel.statistics?.viewCount)
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function discoverCompanyChannelViaApi(company: string): Promise<CompanyDiscovery | null> {
   if (!hasApiKey()) {
     return null;
