@@ -1,34 +1,51 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X } from "@/lib/ppt/layout";
-import { SlideBuilder } from "@/lib/ppt/types";
-import { renderHeader, renderCard, renderFooterNote } from "@/lib/ppt/components";
+import { ACCENT_CYCLE, TYPOGRAPHY } from "@/lib/ppt/theme";
+import { contentRectAboveFooter } from "@/lib/ppt/layout";
+import { SlideBuilder, Rect } from "@/lib/ppt/types";
+import { renderHeader, renderCard, renderFooterLabel, renderFooterNote } from "@/lib/ppt/components";
 
-const ACCENTS = [COLORS.purple, COLORS.cyan, COLORS.gold, COLORS.green, COLORS.violet, COLORS.red];
+function recommendationCardRects(count: number): Rect[] {
+  const base = contentRectAboveFooter();
+  const cols = 3;
+  const rows = 2;
+  const gapX = 0.2;
+  const gapY = 0.2;
+  const colW = (base.w - gapX * (cols - 1)) / cols;
+  const rowH = (base.h - gapY * (rows - 1)) / rows;
+
+  return Array.from({ length: count }, (_, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    return {
+      x: base.x + col * (colW + gapX),
+      y: base.y + row * (rowH + gapY),
+      w: colW,
+      h: rowH
+    };
+  });
+}
 
 export const buildRecommendationsSlide: SlideBuilder = (ctx, vm) => {
   renderHeader(ctx, "Video Marketing Recommendations", "Specific, actionable steps based on the data");
 
   const { slide } = ctx;
+  const recs = vm.report.recommendations.slice(0, 6);
+  const cardRects = recommendationCardRects(recs.length);
 
-  vm.report.recommendations.slice(0, 6).forEach((rec, index) => {
-    const column = index % 3;
-    const row = Math.floor(index / 3);
-    const x = MARGIN_X + column * 4.07;
-    const y = 1.48 + row * 2.22;
-
+  recs.forEach((rec, index) => {
     renderCard(
       slide,
-      { x, y, w: 3.72, h: 1.86 },
-      ACCENTS[index] ?? COLORS.purple,
+      cardRects[index],
+      ACCENT_CYCLE[index] ?? ACCENT_CYCLE[0],
       `Recommendation ${index + 1}`,
       rec,
-      10.5,
-      8.5
+      TYPOGRAPHY.cardTitle,
+      TYPOGRAPHY.bodySm
     );
   });
 
+  renderFooterLabel(slide, "Execution order");
   renderFooterNote(
     slide,
-    "Execution order: 1) Fix highest-opportunity gap  2) Publish strongest format consistently  3) Measure lift in views, engagement, cadence  4) Refresh mix quarterly"
+    "1) Fix highest-opportunity gap  2) Publish strongest format consistently  3) Measure lift in views, engagement, cadence  4) Refresh mix quarterly"
   );
 };

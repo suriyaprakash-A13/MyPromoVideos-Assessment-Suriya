@@ -1,5 +1,5 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X } from "@/lib/ppt/layout";
+import { ACCENT_CYCLE } from "@/lib/ppt/theme";
+import { chartWithSidebarLayout, stackRects } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
 import { renderHeader, addThemedChart, renderMetricCard, renderFooterLabel, renderFooterBullets } from "@/lib/ppt/components";
 import { fmtCompact, fmtPct } from "@/lib/ppt/format";
@@ -9,6 +9,7 @@ export const buildEngagementSlide: SlideBuilder = (ctx, vm) => {
 
   const { slide, pptx } = ctx;
   const nl = vm.normalizedLeaders;
+  const { chart, sidebar } = chartWithSidebarLayout(true);
 
   addThemedChart(
     slide,
@@ -31,41 +32,35 @@ export const buildEngagementSlide: SlideBuilder = (ctx, vm) => {
         values: vm.report.analysis.map((a) => Math.round(a.avgComments))
       }
     ],
-    { x: MARGIN_X, y: 1.38, w: 8.2, h: 4.95 },
-    { barDir: "col", showLegend: true, legendPos: "b" }
+    chart,
+    { barDir: "col", showLegend: true, legendPos: "b", catAxisLabelFontSize: 10, valAxisLabelFontSize: 10 }
   );
+
+  const cards = stackRects(3, sidebar, 0.14);
 
   renderMetricCard(
     slide,
-    { x: 9.12, y: 1.42, w: 3.42, h: 0.9 },
+    cards[0],
     "Best reach",
     nl.avgViews?.company ?? "n/a",
-    `Average views: ${nl.avgViews ? fmtCompact(vm.analysisByCompany.get(nl.avgViews.company)?.avgViews) : "n/a"}`,
-    COLORS.purple
+    `Avg views: ${nl.avgViews ? fmtCompact(vm.analysisByCompany.get(nl.avgViews.company)?.avgViews) : "n/a"}`,
+    ACCENT_CYCLE[0]
   );
   renderMetricCard(
     slide,
-    { x: 9.12, y: 2.42, w: 3.42, h: 0.9 },
+    cards[1],
     "Best response",
     nl.engagementRate?.company ?? "n/a",
-    `Avg engagement: ${nl.engagementRate ? fmtPct(vm.analysisByCompany.get(nl.engagementRate.company)?.engagementRate, 2) : "n/a"}`,
-    COLORS.green
+    `Engagement: ${nl.engagementRate ? fmtPct(vm.analysisByCompany.get(nl.engagementRate.company)?.engagementRate, 2) : "n/a"}`,
+    ACCENT_CYCLE[1]
   );
   renderMetricCard(
     slide,
-    { x: 9.12, y: 3.42, w: 3.42, h: 0.9 },
-    "Most comments",
-    nl.contentDiversity?.company ?? "n/a",
-    "Conversation improves when topics are broader and formats vary.",
-    COLORS.cyan
-  );
-  renderMetricCard(
-    slide,
-    { x: 9.12, y: 4.42, w: 3.42, h: 0.9 },
-    "Reading the gap",
-    "Efficiency beats raw reach",
-    "High volume does not guarantee stronger interaction; balance matters.",
-    COLORS.gold
+    cards[2],
+    "Efficiency",
+    "Reach vs response",
+    "High views alone do not guarantee stronger interaction; balance both.",
+    ACCENT_CYCLE[2]
   );
 
   renderFooterLabel(slide, "Per-company engagement summary");

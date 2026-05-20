@@ -1,14 +1,16 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X, CONTENT_BOTTOM } from "@/lib/ppt/layout";
+import { CHART_SERIES, ACCENT_CYCLE } from "@/lib/ppt/theme";
+import { chartWithSidebarLayout, stackRects } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
-import { renderHeader, addThemedChart, renderMetricCard, textBlock } from "@/lib/ppt/components";
-import { TYPOGRAPHY } from "@/lib/ppt/theme";
+import { renderHeader, addThemedChart, renderMetricCard, renderFooterLabel, renderFooterNote } from "@/lib/ppt/components";
+import { formatTrendChange } from "@/lib/trendVelocity";
+import { truncateText } from "@/lib/ppt/format";
 
 export const buildRankingSlide: SlideBuilder = (ctx, vm) => {
   renderHeader(ctx, "Summary Ranking", "Score all companies on the key metrics used in the model");
 
   const { slide, pptx } = ctx;
   const nl = vm.normalizedLeaders;
+  const { chart, sidebar } = chartWithSidebarLayout(true);
 
   addThemedChart(
     slide,
@@ -21,41 +23,43 @@ export const buildRankingSlide: SlideBuilder = (ctx, vm) => {
         values: vm.scoresRanked.map((s) => s.score)
       }
     ],
-    { x: MARGIN_X, y: 1.38, w: 8.2, h: 4.95 },
-    { barDir: "bar", showLegend: false, chartColors: [COLORS.purple, COLORS.cyan, COLORS.green, COLORS.gold, COLORS.violet] }
+    chart,
+    { barDir: "bar", showLegend: false, chartColors: [...CHART_SERIES] }
   );
 
   const medals = [
-    { label: "1st place", accent: COLORS.purple, index: 0 },
-    { label: "2nd place", accent: COLORS.cyan, index: 1 },
-    { label: "3rd place", accent: COLORS.gold, index: 2 }
+    { label: "1st place", accent: ACCENT_CYCLE[0], index: 0 },
+    { label: "2nd place", accent: ACCENT_CYCLE[1], index: 1 },
+    { label: "3rd place", accent: ACCENT_CYCLE[2], index: 2 },
+    {
+      label: "Biggest factor",
+      accent: ACCENT_CYCLE[3],
+      index: -1,
+      value: truncateText(nl.avgViews?.company ?? "n/a", 16),
+      detail: "Reach drives score when cadence is close."
+    }
   ];
 
+  const sidebarCards = stackRects(4, sidebar, 0.12);
+
   medals.forEach((medal, i) => {
-    renderMetricCard(
-      slide,
-      { x: 9.12, y: 1.42 + i * 1.0, w: 3.42, h: 0.88 },
-      medal.label,
-      vm.scoresRanked[medal.index]?.company ?? "n/a",
-      `Score: ${vm.scoresRanked[medal.index] ? vm.scoresRanked[medal.index].score.toFixed(1) : "n/a"}`,
-      medal.accent
-    );
+    if (medal.index >= 0) {
+      const entry = vm.scoresRanked[medal.index];
+      const trendSuffix = entry?.trend ? ` ${formatTrendChange(entry.trend.direction, entry.trend.changePct)}` : "";
+      renderMetricCard(
+        slide,
+        sidebarCards[i],
+        medal.label,
+        truncateText(entry?.company ?? "n/a", 14),
+        `Score: ${entry ? entry.score.toFixed(1) : "n/a"}${trendSuffix}`,
+        medal.accent
+      );
+      return;
+    }
+
+    renderMetricCard(slide, sidebarCards[i], medal.label, medal.value!, medal.detail!, medal.accent);
   });
 
-  renderMetricCard(
-    slide,
-    { x: 9.12, y: 4.42, w: 3.42, h: 0.88 },
-    "Biggest factor",
-    nl.avgViews?.company ?? "n/a",
-    "Reach often drives the overall score when quality and cadence are close.",
-    COLORS.green
-  );
-
-  textBlock({
-    slide,
-    rect: { x: MARGIN_X, y: CONTENT_BOTTOM + 0.13, w: 12.0, h: 0.52 },
-    text: vm.report.rankingMethod,
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.muted
-  });
+  renderFooterLabel(slide, "Scoring methodology");
+  renderFooterNote(slide, vm.report.rankingMethod);
 };

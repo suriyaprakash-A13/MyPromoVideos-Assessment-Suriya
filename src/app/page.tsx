@@ -21,6 +21,7 @@ import {
   YAxis
 } from "recharts";
 import { ReportPayload } from "@/lib/types";
+import { formatTrendChange, trendArrow } from "@/lib/trendVelocity";
 
 interface FormState {
   primaryCompany: string;
@@ -69,7 +70,13 @@ export default function HomePage(): React.JSX.Element {
   }, []);
 
   const scoreData = useMemo(
-    () => report?.scores.map((score) => ({ company: score.company, score: score.score })) ?? [],
+    () =>
+      report?.scores.map((score) => ({
+        company: score.company,
+        score: score.score,
+        trendLabel: score.trend ? formatTrendChange(score.trend.direction, score.trend.changePct) : "→ n/a",
+        trendDirection: score.trend?.direction ?? "flat"
+      })) ?? [],
     [report]
   );
 
@@ -470,6 +477,67 @@ export default function HomePage(): React.JSX.Element {
               ) : null}
             </div>
 
+            {report.trendVelocity ? (
+              <section className="trend-velocity-panel anim-section">
+                <div className="best-time-header">
+                  <div>
+                    <p className="small" style={{ margin: "0 0 0.35rem", color: "var(--primary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      Trend velocity
+                    </p>
+                    <h2 className="best-time-headline">{report.trendVelocity.headline}</h2>
+                    <p className="inline-note" style={{ marginTop: "0.5rem" }}>{report.trendVelocity.windowDescription}</p>
+                  </div>
+                  <div className="best-time-badges">
+                    <span className="multiplier-badge trend-up">{report.trendVelocity.improvingCount} improving</span>
+                    <span className="multiplier-badge trend-down">{report.trendVelocity.decliningCount} declining</span>
+                  </div>
+                </div>
+                <div className="trend-table-wrap">
+                  <table className="trend-table">
+                    <thead>
+                      <tr>
+                        <th>Company</th>
+                        <th>Avg views</th>
+                        <th>Engagement</th>
+                        <th>Cadence</th>
+                        <th>Velocity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.trendVelocity.companies.map((entry) => (
+                        <tr key={entry.company}>
+                          <td><strong>{entry.company}</strong></td>
+                          <td>
+                            {fmtCompact(entry.avgViews.recent)}{" "}
+                            <span className={`trend-chip trend-${entry.avgViews.direction}`}>
+                              {formatTrendChange(entry.avgViews.direction, entry.avgViews.changePct)}
+                            </span>
+                          </td>
+                          <td>
+                            {entry.engagementRate.recent.toFixed(2)}%{" "}
+                            <span className={`trend-chip trend-${entry.engagementRate.direction}`}>
+                              {formatTrendChange(entry.engagementRate.direction, entry.engagementRate.changePct)}
+                            </span>
+                          </td>
+                          <td>
+                            {entry.uploadsPerWeek.recent.toFixed(1)}/wk{" "}
+                            <span className={`trend-chip trend-${entry.uploadsPerWeek.direction}`}>
+                              {formatTrendChange(entry.uploadsPerWeek.direction, entry.uploadsPerWeek.changePct)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`trend-chip trend-${entry.scoreTrend.direction}`}>
+                              {trendArrow(entry.scoreTrend.direction)} {Math.abs(entry.scoreTrend.changePct).toFixed(0)}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ) : null}
+
             {report.bestTimeToPost ? (
               <section className="best-time-panel anim-section">
                 <div className="best-time-header">
@@ -503,7 +571,14 @@ export default function HomePage(): React.JSX.Element {
               </div>
               <div className="metric-card">
                 <span className="small">Top score</span>
-                <strong>{report.scores[0]?.score ?? 0}</strong>
+                <strong>
+                  {report.scores[0]?.score ?? 0}
+                  {report.scores[0]?.trend ? (
+                    <span className={`trend-chip trend-${report.scores[0].trend.direction}`}>
+                      {formatTrendChange(report.scores[0].trend.direction, report.scores[0].trend.changePct)}
+                    </span>
+                  ) : null}
+                </strong>
               </div>
               <div className="metric-card">
                 <span className="small">Leader Engagement</span>
@@ -553,7 +628,16 @@ export default function HomePage(): React.JSX.Element {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="company" tick={chartAxisStyle} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey="company"
+                        tick={chartAxisStyle}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(value) => {
+                          const row = scoreData.find((item) => item.company === value);
+                          return row ? `${value} ${row.trendLabel}` : value;
+                        }}
+                      />
                       <YAxis
                         tick={chartAxisStyle}
                         axisLine={false}

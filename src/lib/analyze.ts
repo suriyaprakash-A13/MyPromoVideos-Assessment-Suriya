@@ -2,6 +2,7 @@ import { CompanyAnalysis, CompanyScore, CompanyVideoData, ReportPayload } from "
 import { STRATEGY_CATEGORIES, StrategyCategory, summarizeStrategyMix } from "@/lib/strategy";
 import { parseVideoDate } from "@/lib/dates";
 import { analyzeBestTimeToPost } from "@/lib/postingTime";
+import { analyzeTrendVelocity, attachScoreTrends } from "@/lib/trendVelocity";
 
 const STOPWORDS = new Set([
   "the",
@@ -204,7 +205,8 @@ function computeScores(companies: CompanyVideoData[], analyses: CompanyAnalysis[
 
 export function buildReport(primaryCompany: string, competitors: string[], companies: CompanyVideoData[]): ReportPayload {
   const analyses = companies.map((company) => summarizeCompany(company));
-  const scores = computeScores(companies, analyses);
+  const trendVelocity = analyzeTrendVelocity(companies);
+  const scores = attachScoreTrends(computeScores(companies, analyses), trendVelocity);
   const leader = scores[0];
 
   const executiveSummary = [
@@ -403,6 +405,10 @@ export function buildReport(primaryCompany: string, competitors: string[], compa
 
   const bestTimeToPost = analyzeBestTimeToPost(companies);
 
+  if (trendVelocity) {
+    executiveSummary.push(trendVelocity.headline);
+  }
+
   const recommendations = [
     "Build an educational pillar with explainers, tutorials, and thought-leadership videos to increase authority and search-driven discovery.",
     "Introduce customer-story and case-study content to strengthen trust, proof, and conversion intent.",
@@ -436,6 +442,7 @@ export function buildReport(primaryCompany: string, competitors: string[], compa
     gaps: dedupedGaps,
     rankingMethod:
       "Weighted score: Subscribers 25%, Avg Views 20%, Engagement Rate 20%, Posting Frequency 15%, Consistency 10%, Content Diversity 10%. Each metric is max-normalized across analyzed companies.",
-    bestTimeToPost
+    bestTimeToPost,
+    trendVelocity
   };
 }

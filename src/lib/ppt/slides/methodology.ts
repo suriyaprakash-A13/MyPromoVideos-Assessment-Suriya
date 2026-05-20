@@ -1,16 +1,15 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X, CONTENT_BOTTOM } from "@/lib/ppt/layout";
+import { COLORS, TYPOGRAPHY, ACCENT_CYCLE } from "@/lib/ppt/theme";
+import { gridCellAboveFooter } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
-import { renderHeader, renderCallout, renderSlideTable, panelRect, textBlock } from "@/lib/ppt/components";
-import { TYPOGRAPHY } from "@/lib/ppt/theme";
+import { renderHeader, renderCallout, renderSlideTable, panelRect, textBlock, renderFooterNote } from "@/lib/ppt/components";
 
 const WEIGHT_ROWS = [
-  { label: "Subscribers", value: "25%", accent: COLORS.purple },
-  { label: "Avg views", value: "20%", accent: COLORS.cyan },
-  { label: "Engagement rate", value: "20%", accent: COLORS.green },
-  { label: "Posting frequency", value: "15%", accent: COLORS.gold },
-  { label: "Consistency", value: "10%", accent: COLORS.violet },
-  { label: "Content diversity", value: "10%", accent: COLORS.red }
+  { label: "Subscribers", value: "25%" },
+  { label: "Avg views", value: "20%" },
+  { label: "Engagement rate", value: "20%" },
+  { label: "Posting frequency", value: "15%" },
+  { label: "Consistency", value: "10%" },
+  { label: "Content diversity", value: "10%" }
 ];
 
 export const buildMethodologySlide: SlideBuilder = (ctx, vm) => {
@@ -20,26 +19,33 @@ export const buildMethodologySlide: SlideBuilder = (ctx, vm) => {
   const leader = vm.scoresRanked[0];
   const nl = vm.normalizedLeaders;
 
-  panelRect(slide, { x: MARGIN_X, y: 1.38, w: 4.05, h: 4.95 }, COLORS.panel2);
+  const weightsRect = gridCellAboveFooter(0, 0, 4, 6);
+  const readRect = gridCellAboveFooter(4, 0, 4, 3);
+  const qualityRect = gridCellAboveFooter(8, 0, 4, 3);
+  const noteRect = gridCellAboveFooter(4, 3, 8, 3);
+
+  panelRect(slide, weightsRect, COLORS.panelTeal);
 
   textBlock({
     slide,
-    rect: { x: 0.98, y: 1.63, w: 2.3, h: 0.2 },
+    rect: { x: weightsRect.x + 0.18, y: weightsRect.y + 0.18, w: weightsRect.w - 0.36, h: 0.24 },
     text: "Weighted scoring model",
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.muted
+    fontSize: TYPOGRAPHY.captionMd,
+    color: COLORS.teal,
+    bold: true,
+    valign: "middle"
   });
 
   renderSlideTable(
     slide,
-    { x: 1.02, y: 1.95, w: 3.5, h: 3.2 },
+    { x: weightsRect.x + 0.22, y: weightsRect.y + 0.5, w: weightsRect.w - 0.44, h: weightsRect.h - 0.68 },
     ["Metric", "Weight"],
     WEIGHT_ROWS.map((row) => ({ cells: [row.label, row.value] }))
   );
 
   renderCallout(
     slide,
-    { x: 5.0, y: 1.38, w: 3.7, h: 2.25 },
+    readRect,
     "How to read the results",
     [
       "• Scores reward both scale and sustained performance.",
@@ -47,26 +53,26 @@ export const buildMethodologySlide: SlideBuilder = (ctx, vm) => {
       "• Topic diversity matters when channels compete for attention.",
       "• Cadence and consistency reduce volatility across a campaign window."
     ].join("\n"),
-    COLORS.purple,
+    ACCENT_CYCLE[0],
     5
   );
 
   renderCallout(
     slide,
-    { x: 8.92, y: 1.38, w: 3.68, h: 2.25 },
+    qualityRect,
     "Data quality guidance",
     [
       "• Full data means channel and video metrics were available.",
       "• Partial or limited data uses conservative fallback inference.",
       "• The report stays useful without false precision where data is thin."
     ].join("\n"),
-    COLORS.cyan,
+    ACCENT_CYCLE[1],
     4
   );
 
   renderCallout(
     slide,
-    { x: 5.0, y: 3.92, w: 7.6, h: 2.41 },
+    noteRect,
     "Interpretation note",
     [
       `• Leader: ${leader?.company ?? "n/a"}`,
@@ -75,15 +81,12 @@ export const buildMethodologySlide: SlideBuilder = (ctx, vm) => {
       `• Best cadence: ${nl.postingFrequency?.company ?? "n/a"}`,
       `• Best breadth: ${nl.contentDiversity?.company ?? "n/a"}`
     ].join("\n"),
-    COLORS.gold,
+    ACCENT_CYCLE[2],
     5
   );
 
-  textBlock({
+  renderFooterNote(
     slide,
-    rect: { x: MARGIN_X, y: CONTENT_BOTTOM + 0.27, w: 12.0, h: 0.28 },
-    text: "The goal is to surface which companies are winning, why they are winning, and where the next content advantage is likely to come from.",
-    fontSize: TYPOGRAPHY.footnote,
-    color: COLORS.text
-  });
+    "The goal is to surface which companies are winning, why they are winning, and where the next content advantage is likely to come from."
+  );
 };

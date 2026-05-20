@@ -1,6 +1,7 @@
 import { SlideBuilder } from "@/lib/ppt/types";
 import { buildCoverSlide } from "@/lib/ppt/slides/cover";
 import { buildExecutiveSlide } from "@/lib/ppt/slides/executive";
+import { buildTrendVelocitySlide } from "@/lib/ppt/slides/trendVelocity";
 import { buildChannelSlide } from "@/lib/ppt/slides/channel";
 import { buildTopViewsSlide } from "@/lib/ppt/slides/topViews";
 import { buildTopEngagementSlide } from "@/lib/ppt/slides/topEngagement";
@@ -16,6 +17,7 @@ import { buildMethodologySlide } from "@/lib/ppt/slides/methodology";
 export const SLIDE_BUILDERS: readonly SlideBuilder[] = [
   buildCoverSlide,
   buildExecutiveSlide,
+  buildTrendVelocitySlide,
   buildChannelSlide,
   buildTopViewsSlide,
   buildTopEngagementSlide,

@@ -98,7 +98,7 @@ function extractVideosFromYtInitialData(data: any): VideoMetric[] {
               publishedAt: publishedTimeText
             });
             
-            if (videos.length >= 15) break;
+            if (videos.length >= 30) break;
           }
         }
       }

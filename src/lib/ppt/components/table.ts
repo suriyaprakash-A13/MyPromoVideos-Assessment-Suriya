@@ -17,20 +17,20 @@ export function renderSlideTable(
       text: cell,
       options: {
         bold: true,
-        color: COLORS.white,
-        fill: { color: COLORS.panel3 },
+        color: COLORS.onAccent,
+        fill: { color: COLORS.teal },
         fontFace: FONTS.display,
-        fontSize: TYPOGRAPHY.caption
+        fontSize: TYPOGRAPHY.tableHeader
       }
     })),
-    ...rows.map((row) =>
+    ...rows.map((row, rowIndex) =>
       row.cells.map((cell) => ({
         text: cell,
         options: {
           color: COLORS.text,
-          fill: { color: COLORS.panel },
+          fill: { color: rowIndex % 2 === 0 ? COLORS.white : COLORS.panel2 },
           fontFace: FONTS.body,
-          fontSize: TYPOGRAPHY.caption
+          fontSize: TYPOGRAPHY.tableCell
         }
       }))
     )
@@ -42,7 +42,9 @@ export function renderSlideTable(
     w: rect.w,
     h: rect.h,
     colW: headers.map(() => rect.w / headers.length),
-    border: { type: "solid", color: COLORS.line, pt: 0.75 },
-    margin: 4
+    border: { type: "solid", color: COLORS.lineSoft, pt: 0.75 },
+    margin: [8, 10, 8, 10],
+    valign: "middle",
+    autoPage: false
   });
 }

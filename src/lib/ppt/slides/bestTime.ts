@@ -1,19 +1,19 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X } from "@/lib/ppt/layout";
+import { COLORS, FONTS, TYPOGRAPHY, LINE_SPACING, ACCENT_CYCLE } from "@/lib/ppt/theme";
+import { contentRect, rowOfRects } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
 import { renderHeader, renderCallout, renderMetricCard, textBlock } from "@/lib/ppt/components";
-import { FONTS, TYPOGRAPHY } from "@/lib/ppt/theme";
 
 export const buildBestTimeSlide: SlideBuilder = (ctx, vm) => {
   renderHeader(ctx, "Best Time to Post", "When top-performing videos were published across the competitive set");
 
   const { slide } = ctx;
   const insight = vm.report.bestTimeToPost;
+  const main = contentRect();
 
   if (!insight) {
     renderCallout(
       slide,
-      { x: MARGIN_X, y: 1.38, w: 12.0, h: 4.5 },
+      main,
       "Insufficient timing data",
       "Not enough videos with parseable publish dates to recommend a posting window. Use YouTube API data or a larger video sample.",
       COLORS.muted,
@@ -22,47 +22,31 @@ export const buildBestTimeSlide: SlideBuilder = (ctx, vm) => {
     return;
   }
 
-  renderMetricCard(
-    slide,
-    { x: MARGIN_X, y: 1.42, w: 3.2, h: 1.1 },
-    "Engagement lift",
-    `${insight.engagementMultiplier}×`,
-    "Vs channel average in benchmark",
-    COLORS.magenta
-  );
+  const metricCount = insight.bestHourRange ? 4 : 3;
+  const metricRects = rowOfRects(metricCount, main.y, 1.12);
+  const metrics = [
+    { label: "Engagement lift", value: `${insight.engagementMultiplier}×`, detail: "Vs channel average in benchmark", accent: COLORS.magenta },
+    { label: "Best days", value: insight.bestDayRange, detail: "Top performer window", accent: COLORS.teal },
+    ...(insight.bestHourRange
+      ? [{ label: "Best hours", value: insight.bestHourRange, detail: "UTC publish time", accent: ACCENT_CYCLE[2] }]
+      : []),
+    { label: "Confidence", value: insight.confidence, detail: `${insight.sampleSize} top videos analyzed`, accent: ACCENT_CYCLE[3] }
+  ];
 
-  renderMetricCard(
-    slide,
-    { x: 4.1, y: 1.42, w: 3.2, h: 1.1 },
-    "Best days",
-    insight.bestDayRange,
-    "Top performer window",
-    COLORS.cyan
-  );
+  metrics.forEach((m, i) => {
+    renderMetricCard(slide, metricRects[i], m.label, m.value, m.detail, m.accent);
+  });
 
-  if (insight.bestHourRange) {
-    renderMetricCard(
-      slide,
-      { x: 7.08, y: 1.42, w: 3.2, h: 1.1 },
-      "Best hours",
-      insight.bestHourRange,
-      "UTC publish time",
-      COLORS.green
-    );
-  }
-
-  renderMetricCard(
-    slide,
-    { x: 9.12, y: 1.42, w: 3.42, h: 1.1 },
-    "Confidence",
-    insight.confidence,
-    `${insight.sampleSize} top videos analyzed`,
-    COLORS.gold
-  );
+  const calloutRect = {
+    x: main.x,
+    y: main.y + 1.12 + 0.18,
+    w: main.w,
+    h: main.h - 1.12 - 0.18
+  };
 
   renderCallout(
     slide,
-    { x: MARGIN_X, y: 2.75, w: 12.0, h: 3.55 },
+    calloutRect,
     "Recommendation",
     [insight.headline, ...insight.details.map((d) => `• ${d}`)].join("\n"),
     COLORS.magenta,
@@ -71,10 +55,11 @@ export const buildBestTimeSlide: SlideBuilder = (ctx, vm) => {
 
   textBlock({
     slide,
-    rect: { x: MARGIN_X, y: 6.55, w: 12.0, h: 0.35 },
+    rect: { x: main.x, y: main.y + main.h + 0.08, w: main.w, h: 0.32 },
     text: "Timing analysis uses top-quartile videos by engagement rate across all companies in this report.",
     fontSize: TYPOGRAPHY.footnote,
     color: COLORS.muted,
-    fontFace: FONTS.body
+    fontFace: FONTS.body,
+    lineSpacing: LINE_SPACING.normal
   });
 };

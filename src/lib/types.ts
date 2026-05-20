@@ -43,9 +43,45 @@ export interface CompanyVideoData {
   notes: string[];
 }
 
+export type TrendDirection = "up" | "down" | "flat";
+
+export interface MetricVelocity {
+  recent: number;
+  previous: number;
+  changePct: number;
+  direction: TrendDirection;
+}
+
+export interface CompanyVelocityEntry {
+  company: string;
+  windowLabel: string;
+  recentCount: number;
+  previousCount: number;
+  avgViews: MetricVelocity;
+  engagementRate: MetricVelocity;
+  uploadsPerWeek: MetricVelocity;
+  scoreTrend: MetricVelocity;
+}
+
+export interface TrendVelocityReport {
+  headline: string;
+  windowDescription: string;
+  improvingCount: number;
+  decliningCount: number;
+  companies: CompanyVelocityEntry[];
+}
+
+export interface ScoreTrend {
+  direction: TrendDirection;
+  changePct: number;
+  recentScore: number;
+  previousScore: number;
+}
+
 export interface CompanyScore {
   company: string;
   score: number;
+  trend?: ScoreTrend;
   normalized: {
     subscribers: number;
     avgViews: number;
@@ -92,4 +128,5 @@ export interface ReportPayload {
   gaps: string[];
   rankingMethod: string;
   bestTimeToPost?: BestTimeToPostInsight;
+  trendVelocity?: TrendVelocityReport;
 }

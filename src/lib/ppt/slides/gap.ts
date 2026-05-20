@@ -1,71 +1,76 @@
-import { COLORS, FONTS, TYPOGRAPHY } from "@/lib/ppt/theme";
-import { MARGIN_X } from "@/lib/ppt/layout";
+import { COLORS, FONTS, TYPOGRAPHY, LINE_SPACING } from "@/lib/ppt/theme";
+import { contentRectAboveFooter, insetRect } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
 import { renderHeader, panelRect, textBlock, renderFooterNote } from "@/lib/ppt/components";
+import { maxCharsForWidth, truncateText } from "@/lib/ppt/format";
 
 export const buildGapSlide: SlideBuilder = (ctx, vm) => {
   renderHeader(ctx, "Gap Analysis", "Topics and formats competitors are not covering");
 
   const { slide } = ctx;
   const gapHighlights = vm.report.gaps.slice(0, 6);
+  const main = contentRectAboveFooter();
+  const pad = insetRect(main, 0.22);
 
-  panelRect(slide, { x: MARGIN_X, y: 1.38, w: 12.0, h: 4.95 }, COLORS.panel2);
+  panelRect(slide, main, COLORS.panel, COLORS.lineSoft);
+
+  const sectionHeaderH = 0.3;
+  const gridGap = 0.14;
+  const cols = 2;
+  const rows = 3;
+  const colW = (pad.w - gridGap) / cols;
+  const rowH = (pad.h - sectionHeaderH - gridGap * (rows - 1)) / rows;
+  const maxChars = maxCharsForWidth(colW - 0.7, 11);
 
   textBlock({
     slide,
-    rect: { x: 0.98, y: 1.62, w: 2.4, h: 0.2 },
+    rect: { x: pad.x, y: pad.y, w: pad.w, h: sectionHeaderH },
     text: "Priority opportunities",
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.muted
+    fontSize: TYPOGRAPHY.bodyMd,
+    color: COLORS.muted,
+    bold: true,
+    valign: "middle"
   });
 
   gapHighlights.forEach((gap, index) => {
-    const row = Math.floor(index / 2);
-    const col = index % 2;
-    const x = 0.98 + col * 5.85;
-    const y = 1.92 + row * 1.58;
+    const row = Math.floor(index / cols);
+    const col = index % cols;
+    const card = {
+      x: pad.x + col * (colW + gridGap),
+      y: pad.y + sectionHeaderH + row * (rowH + gridGap),
+      w: colW,
+      h: rowH
+    };
 
-    panelRect(slide, { x, y, w: 5.42, h: 1.4 });
+    panelRect(slide, card);
 
     textBlock({
       slide,
-      rect: { x: x + 0.12, y: y + 0.19, w: 0.48, h: 0.16 },
+      rect: { x: card.x + 0.12, y: card.y + 0.1, w: 0.36, h: 0.28 },
       text: `${index + 1}`,
-      fontSize: TYPOGRAPHY.footnote,
-      color: COLORS.text,
+      fontSize: TYPOGRAPHY.bodyMd,
+      color: COLORS.magenta,
       bold: true,
-      align: "center"
+      align: "center",
+      valign: "middle"
     });
 
     textBlock({
       slide,
-      rect: { x: x + 0.72, y: y + 0.1, w: 4.45, h: 0.9 },
-      text: gap,
-      fontFace: FONTS.display,
-      fontSize: TYPOGRAPHY.bodySm,
-      color: COLORS.white,
-      bold: true
+      rect: { x: card.x + 0.52, y: card.y + 0.1, w: card.w - 0.64, h: card.h - 0.2 },
+      text: truncateText(gap, maxChars),
+      fontFace: FONTS.body,
+      fontSize: TYPOGRAPHY.bodyMd,
+      color: COLORS.ink,
+      bold: true,
+      valign: "top",
+      lineSpacing: LINE_SPACING.relaxed,
+      fit: "shrink"
     });
-  });
-
-  textBlock({
-    slide,
-    rect: { x: 0.98, y: 5.6, w: 3.0, h: 0.2 },
-    text: "What the set is missing overall",
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.muted
-  });
-
-  textBlock({
-    slide,
-    rect: { x: 0.98, y: 5.85, w: 11.1, h: 0.5 },
-    text: vm.report.gaps.slice(0, 4).map((g, i) => `${i + 1}. ${g}`).join("\n"),
-    fontSize: TYPOGRAPHY.bodySm,
-    color: COLORS.text
   });
 
   renderFooterNote(
     slide,
-    "The strongest opportunities are where competitors are least active across category depth, cadence, and audience interaction."
+    "Strongest opportunities: areas where competitors are least active across category depth, cadence, and audience interaction."
   );
 };

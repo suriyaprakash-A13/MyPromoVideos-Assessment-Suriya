@@ -119,7 +119,7 @@ function buildChannelsUrl(ids: string[], parts = ["snippet", "statistics", "cont
   return `${API_BASE}/channels?${params.toString()}`;
 }
 
-function buildPlaylistItemsUrl(playlistId: string, maxResults = 20): string {
+function buildPlaylistItemsUrl(playlistId: string, maxResults = 50, pageToken?: string): string {
   const params = new URLSearchParams({
     part: "snippet,contentDetails",
     playlistId,
@@ -127,7 +127,35 @@ function buildPlaylistItemsUrl(playlistId: string, maxResults = 20): string {
     key: API_KEY ?? ""
   });
 
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+
   return `${API_BASE}/playlistItems?${params.toString()}`;
+}
+
+async function fetchUploadVideoIds(playlistId: string, limit = 60): Promise<string[]> {
+  const ids: string[] = [];
+  let pageToken: string | undefined;
+
+  while (ids.length < limit) {
+    const payload = await apiGet<{ items?: PlaylistItem[]; nextPageToken?: string }>(
+      buildPlaylistItemsUrl(playlistId, Math.min(50, limit - ids.length), pageToken)
+    );
+
+    const batch = (payload.items ?? [])
+      .map((item) => item.contentDetails?.videoId)
+      .filter((videoId): videoId is string => Boolean(videoId));
+
+    ids.push(...batch);
+    pageToken = payload.nextPageToken;
+
+    if (!pageToken || batch.length === 0) {
+      break;
+    }
+  }
+
+  return ids.slice(0, limit);
 }
 
 function buildVideosUrl(ids: string[]): string {
@@ -302,10 +330,7 @@ export async function fetchCompanyVideoDataViaApi(discovery: CompanyDiscovery): 
   const notes: string[] = [];
 
   if (uploadsPlaylistId) {
-    const playlistPayload = await apiGet<{ items?: PlaylistItem[] }>(buildPlaylistItemsUrl(uploadsPlaylistId, 20));
-    const videoIds = (playlistPayload.items ?? [])
-      .map((item) => item.contentDetails?.videoId)
-      .filter((videoId): videoId is string => Boolean(videoId));
+    const videoIds = await fetchUploadVideoIds(uploadsPlaylistId, 60);
 
     for (const batch of chunk(videoIds, 50)) {
       const videosPayload = await apiGet<{ items?: VideoItem[] }>(buildVideosUrl(batch));

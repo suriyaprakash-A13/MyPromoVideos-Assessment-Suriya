@@ -1,8 +1,7 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X } from "@/lib/ppt/layout";
+import { COLORS, FONTS, TYPOGRAPHY, LINE_SPACING, ACCENT_CYCLE } from "@/lib/ppt/theme";
+import { gridCell, rowOfRects } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
 import { renderHeader, renderCallout, renderMetricCard, panelRect, textBlock } from "@/lib/ppt/components";
-import { FONTS, TYPOGRAPHY } from "@/lib/ppt/theme";
 
 export const buildExecutiveSlide: SlideBuilder = (ctx, vm) => {
   renderHeader(ctx, "Executive Summary", "Who leads in video marketing and why");
@@ -12,70 +11,67 @@ export const buildExecutiveSlide: SlideBuilder = (ctx, vm) => {
   const runnerUp = vm.scoresRanked[1];
   const nl = vm.normalizedLeaders;
 
-  panelRect(slide, { x: MARGIN_X, y: 1.32, w: 4.25, h: 4.95 }, COLORS.panel2);
+  const leaderRect = gridCell(0, 0, 4, 6);
+  const whyRect = gridCell(4, 0, 4, 6);
+  const decisionRect = gridCell(8, 0, 4, 6);
+  const leaderPad = { x: leaderRect.x + 0.16, y: leaderRect.y + 0.16, w: leaderRect.w - 0.32, h: leaderRect.h - 0.32 };
+
+  panelRect(slide, leaderRect, COLORS.panel, COLORS.lineSoft);
 
   textBlock({
     slide,
-    rect: { x: 0.96, y: 1.58, w: 2.2, h: 0.2 },
+    rect: { x: leaderPad.x, y: leaderPad.y, w: leaderPad.w, h: 0.22 },
     text: "Overall leader",
     fontSize: TYPOGRAPHY.caption,
-    color: COLORS.muted
+    color: COLORS.muted,
+    valign: "middle"
   });
 
   textBlock({
     slide,
-    rect: { x: 0.96, y: 1.85, w: 3.3, h: 0.42 },
+    rect: { x: leaderPad.x, y: leaderPad.y + 0.28, w: leaderPad.w, h: 0.48 },
     text: leader?.company ?? "n/a",
     fontFace: FONTS.display,
     fontSize: TYPOGRAPHY.metricValue,
-    color: COLORS.white,
-    bold: true
+    color: COLORS.ink,
+    bold: true,
+    valign: "middle",
+    fit: "shrink"
   });
 
   textBlock({
     slide,
-    rect: { x: 0.96, y: 2.35, w: 2.8, h: 0.2 },
+    rect: { x: leaderPad.x, y: leaderPad.y + 0.82, w: leaderPad.w, h: 0.22 },
     text: `Weighted score ${leader ? leader.score.toFixed(1) : "n/a"}`,
     fontSize: TYPOGRAPHY.bodySm,
-    color: COLORS.cyan
+    color: COLORS.teal,
+    valign: "middle"
   });
 
   textBlock({
     slide,
-    rect: { x: 0.96, y: 2.72, w: 3.45, h: 1.25 },
+    rect: { x: leaderPad.x, y: leaderPad.y + 1.12, w: leaderPad.w, h: 1.35 },
     text: [
       "• Leader advantage comes from scale, cadence, and consistency.",
       "• Runner-up pressure is strongest where reach is high but cadence trails.",
       "• Biggest opportunity: convert topic breadth into repeatable engagement."
     ].join("\n"),
     fontSize: TYPOGRAPHY.caption,
-    color: COLORS.text
+    color: COLORS.text,
+    lineSpacing: LINE_SPACING.relaxed
   });
 
-  renderMetricCard(
-    slide,
-    { x: 0.95, y: 4.25, w: 1.2, h: 1.2 },
-    "Gap",
-    runnerUp && leader ? `${(leader.score - runnerUp.score).toFixed(1)}` : "n/a",
-    "Score lead over second place",
-    COLORS.gold
-  );
-  renderMetricCard(
-    slide,
-    { x: 2.22, y: 4.25, w: 1.2, h: 1.2 },
-    "Leader",
-    leader?.company ?? "n/a",
-    "Top weighted company",
-    COLORS.purple
-  );
-  renderMetricCard(
-    slide,
-    { x: 3.49, y: 4.25, w: 1.2, h: 1.2 },
-    "Signal",
-    nl.engagementRate?.company ?? "n/a",
-    "Best audience response",
-    COLORS.green
-  );
+  const miniCards = rowOfRects(3, leaderPad.y + leaderPad.h - 1.35, 1.2, 0.12);
+  const miniAccents = [ACCENT_CYCLE[0], ACCENT_CYCLE[1], ACCENT_CYCLE[2]];
+  const miniData = [
+    { label: "Gap", value: runnerUp && leader ? `${(leader.score - runnerUp.score).toFixed(1)}` : "n/a", detail: "Score lead over second place" },
+    { label: "Leader", value: leader?.company ?? "n/a", detail: "Top weighted company" },
+    { label: "Signal", value: nl.engagementRate?.company ?? "n/a", detail: "Best audience response" }
+  ];
+
+  miniCards.forEach((rect, i) => {
+    renderMetricCard(slide, rect, miniData[i].label, miniData[i].value, miniData[i].detail, miniAccents[i]);
+  });
 
   const whyLines = vm.report.executiveSummary
     .concat([
@@ -86,18 +82,11 @@ export const buildExecutiveSlide: SlideBuilder = (ctx, vm) => {
     ])
     .join("\n");
 
-  renderCallout(
-    slide,
-    { x: 5.25, y: 1.32, w: 3.25, h: 4.95 },
-    "Why this matters",
-    whyLines,
-    COLORS.purple,
-    6
-  );
+  renderCallout(slide, whyRect, "Why this matters", whyLines, ACCENT_CYCLE[1], 6);
 
   renderCallout(
     slide,
-    { x: 8.7, y: 1.32, w: 3.9, h: 4.95 },
+    decisionRect,
     "Decision summary",
     [
       `• Leader: ${leader?.company ?? "n/a"}`,
@@ -106,7 +95,7 @@ export const buildExecutiveSlide: SlideBuilder = (ctx, vm) => {
       `• Most active cadence: ${nl.postingFrequency?.company ?? "n/a"}`,
       `• Best content breadth: ${nl.contentDiversity?.company ?? "n/a"}`
     ].join("\n"),
-    COLORS.cyan,
+    ACCENT_CYCLE[0],
     5
   );
 };

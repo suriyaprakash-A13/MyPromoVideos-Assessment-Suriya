@@ -22,7 +22,7 @@ export function textBlock(options: TextBlockOptions): void {
     slide,
     rect,
     text,
-    fontSize = TYPOGRAPHY.body,
+    fontSize = TYPOGRAPHY.bodyMd,
     fontFace = FONTS.body,
     color = COLORS.text,
     bold = false,

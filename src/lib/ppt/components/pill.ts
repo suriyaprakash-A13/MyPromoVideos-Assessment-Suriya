@@ -1,5 +1,5 @@
 import PptxGenJS from "pptxgenjs";
-import { COLORS, TYPOGRAPHY } from "@/lib/ppt/theme";
+import { COLORS, TYPOGRAPHY, PANEL_RADIUS } from "@/lib/ppt/theme";
 import { textBlock } from "@/lib/ppt/components/text";
 
 export function renderPill(
@@ -8,22 +8,24 @@ export function renderPill(
   y: number,
   label: string,
   fill: string,
-  textColor: string = COLORS.white
+  textColor: string = COLORS.ink
 ): number {
-  const width = Math.max(0.95, Math.min(2.6, label.length * 0.095 + 0.42));
+  const width = Math.max(1.0, Math.min(2.4, label.length * 0.088 + 0.5));
+  const height = 0.34;
 
   slide.addShape("roundRect", {
     x,
     y,
     w: width,
-    h: 0.32,
+    h: height,
     fill: { color: fill },
-    line: { color: fill, pt: 0.8 }
+    line: { color: fill, pt: 0.5 },
+    rectRadius: PANEL_RADIUS
   });
 
   textBlock({
     slide,
-    rect: { x, y: y + 0.03, w: width, h: 0.22 },
+    rect: { x, y: y + 0.06, w: width, h: height - 0.08 },
     text: label,
     fontSize: TYPOGRAPHY.pill,
     color: textColor,

@@ -1,5 +1,5 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X } from "@/lib/ppt/layout";
+import { ACCENT_CYCLE } from "@/lib/ppt/theme";
+import { chartWithSidebarLayout, stackRects } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
 import { renderHeader, addThemedChart, renderCallout, renderFooterLabel, renderFooterBullets } from "@/lib/ppt/components";
 import { fmtPct } from "@/lib/ppt/format";
@@ -9,6 +9,7 @@ export const buildCadenceSlide: SlideBuilder = (ctx, vm) => {
 
   const { slide, pptx } = ctx;
   const nl = vm.normalizedLeaders;
+  const { chart, sidebar } = chartWithSidebarLayout(true);
 
   addThemedChart(
     slide,
@@ -26,32 +27,34 @@ export const buildCadenceSlide: SlideBuilder = (ctx, vm) => {
         values: vm.report.analysis.map((a) => Number((a.consistencyScore * 100).toFixed(2)))
       }
     ],
-    { x: MARGIN_X, y: 1.38, w: 8.2, h: 4.95 },
+    chart,
     { barDir: "col", showLegend: true, legendPos: "b" }
   );
 
+  const callouts = stackRects(3, sidebar, 0.14);
+
   renderCallout(
     slide,
-    { x: 9.12, y: 1.38, w: 3.42, h: 1.24 },
+    callouts[0],
     "Cadence leader",
     `${nl.postingFrequency?.company ?? "n/a"} is the most active on a normalized basis and sets the tempo for the set.`,
-    COLORS.green,
+    ACCENT_CYCLE[0],
     3
   );
   renderCallout(
     slide,
-    { x: 9.12, y: 2.78, w: 3.42, h: 1.24 },
+    callouts[1],
     "Consistency leader",
     `${nl.consistency?.company ?? "n/a"} keeps a steadier publishing pattern and reduces volatility in output.`,
-    COLORS.cyan,
+    ACCENT_CYCLE[1],
     3
   );
   renderCallout(
     slide,
-    { x: 9.12, y: 4.18, w: 3.42, h: 1.24 },
+    callouts[2],
     "Strategic read",
     "The best program combines frequent publishing with a repeatable cadence, not just burst volume.",
-    COLORS.gold,
+    ACCENT_CYCLE[2],
     3
   );
 

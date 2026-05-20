@@ -1,15 +1,15 @@
-import { COLORS } from "@/lib/ppt/theme";
-import { MARGIN_X } from "@/lib/ppt/layout";
+import { COLORS, TYPOGRAPHY, ACCENT_CYCLE } from "@/lib/ppt/theme";
+import { chartWithSidebarLayout, stackRects, insetRect } from "@/lib/ppt/layout";
 import { SlideBuilder } from "@/lib/ppt/types";
 import { renderHeader, addThemedChart, renderMetricCard, panelRect, textBlock } from "@/lib/ppt/components";
 import { fmtCompact, fmtPct } from "@/lib/ppt/format";
-import { TYPOGRAPHY } from "@/lib/ppt/theme";
 
 export const buildChannelSlide: SlideBuilder = (ctx, vm) => {
   renderHeader(ctx, "Channel Overview Comparison", "Subscriber scale, total videos, and upload frequency");
 
   const { slide, pptx } = ctx;
   const nl = vm.normalizedLeaders;
+  const { chart, sidebar } = chartWithSidebarLayout();
 
   addThemedChart(
     slide,
@@ -27,18 +27,21 @@ export const buildChannelSlide: SlideBuilder = (ctx, vm) => {
         values: vm.report.companies.map((c) => c.totalVideos ?? c.videos.length)
       }
     ],
-    { x: MARGIN_X, y: 1.38, w: 8.15, h: 4.95 },
+    chart,
     { barDir: "col", catAxisLabelRotate: -25, showLegend: true, legendPos: "b" }
   );
 
-  panelRect(slide, { x: 9.08, y: 1.38, w: 3.45, h: 4.95 }, COLORS.panel2);
+  panelRect(slide, sidebar, COLORS.panel, COLORS.lineSoft);
+  const sidePad = insetRect(sidebar, 0.24);
 
   textBlock({
     slide,
-    rect: { x: 9.32, y: 1.63, w: 2.2, h: 0.22 },
+    rect: { x: sidePad.x, y: sidePad.y, w: sidePad.w, h: 0.24 },
     text: "Upload frequency",
     fontSize: TYPOGRAPHY.caption,
-    color: COLORS.muted
+    color: COLORS.muted,
+    bold: true,
+    valign: "middle"
   });
 
   const cadenceText = vm.channelMetrics
@@ -47,34 +50,36 @@ export const buildChannelSlide: SlideBuilder = (ctx, vm) => {
 
   textBlock({
     slide,
-    rect: { x: 9.32, y: 1.9, w: 2.9, h: 1.5 },
+    rect: { x: sidePad.x, y: sidePad.y + 0.32, w: sidePad.w, h: 1.45 },
     text: cadenceText,
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.text
   });
 
+  const cards = stackRects(3, { x: sidePad.x, y: sidePad.y + 1.85, w: sidePad.w, h: sidePad.h - 1.85 }, 0.12);
+
   renderMetricCard(
     slide,
-    { x: 9.32, y: 3.48, w: 2.9, h: 0.9 },
+    cards[0],
     "Highest scale",
     nl.subscribers?.company ?? "n/a",
     `Subscribers: ${fmtCompact(nl.subscribers ? vm.scoreByCompany.get(nl.subscribers.company)?.normalized.subscribers : undefined)}`,
-    COLORS.purple
+    ACCENT_CYCLE[0]
   );
   renderMetricCard(
     slide,
-    { x: 9.32, y: 4.47, w: 2.9, h: 0.9 },
+    cards[1],
     "Most active",
     nl.postingFrequency?.company ?? "n/a",
     `Videos per week: ${nl.postingFrequency ? vm.analysisByCompany.get(nl.postingFrequency.company)?.uploadsPerWeek.toFixed(2) : "n/a"}`,
-    COLORS.green
+    ACCENT_CYCLE[1]
   );
   renderMetricCard(
     slide,
-    { x: 9.32, y: 5.46, w: 2.9, h: 0.9 },
+    cards[2],
     "Most consistent",
     nl.consistency?.company ?? "n/a",
     `Consistency: ${nl.consistency ? fmtPct((vm.scoreByCompany.get(nl.consistency.company)?.normalized.consistency ?? 0) * 100, 0) : "n/a"}`,
-    COLORS.cyan
+    ACCENT_CYCLE[2]
   );
 };

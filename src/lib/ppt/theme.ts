@@ -1,49 +1,81 @@
-/** Dark executive theme — aligned with app dark mode palette. */
+/** Light theme — teal, magenta, and pink accents only. */
 export const COLORS = {
-  bg: "0B1020",
-  bg2: "10192E",
-  panel: "15203A",
-  panel2: "1A2744",
-  panel3: "223155",
-  line: "344466",
-  text: "F8FAFC",
-  muted: "A7B4D1",
-  purple: "8B5CF6",
-  violet: "C084FC",
-  cyan: "22D3EE",
-  gold: "FBBF24",
-  green: "34D399",
-  red: "F87171",
+  bg: "F8FAFC",
+  bg2: "F0FDFA",
+  panel: "FFFFFF",
+  panel2: "F8FAFC",
+  panel3: "F0FDFA",
+  panelTeal: "CCFBF1",
+  panelMagenta: "FCE7F3",
+  panelPink: "FDF2F8",
+  line: "99F6E4",
+  lineSoft: "E2E8F0",
+  text: "0F172A",
+  muted: "64748B",
+  ink: "0F172A",
+  teal: "0D9488",
+  cyan: "14B8A6",
   magenta: "D946EF",
+  pink: "EC4899",
   white: "FFFFFF",
-  inkSoft: "DCE7FF"
+  inkSoft: "115E59",
+  inkPink: "9D174D",
+  /** Text on saturated accent fills (badges, table headers). */
+  onAccent: "FFFFFF"
 } as const;
 
+export const ACCENT_CYCLE = [
+  COLORS.teal,
+  COLORS.magenta,
+  COLORS.pink,
+  COLORS.teal,
+  COLORS.magenta,
+  COLORS.pink
+] as const;
+
 export const FONTS = {
-  display: "Segoe UI",
-  body: "Calibri"
+  display: "Calibri Light",
+  body: "Calibri",
+  fallback: "Arial"
 } as const;
 
 export const TYPOGRAPHY = {
-  coverTitle: 32,
-  slideTitle: 24,
+  coverTitle: 34,
+  coverSubtitle: 19,
+  slideTitle: 22,
+  slideSubtitle: 11,
   sectionTitle: 14,
   cardTitle: 13,
-  body: 11,
-  bodySm: 9.5,
-  caption: 9,
-  footnote: 8,
-  metricValue: 22,
-  pill: 7.8
+  body: 12,
+  bodyMd: 12,
+  bodyLg: 13,
+  bodySm: 11,
+  caption: 10,
+  captionMd: 11,
+  footnote: 9,
+  footer: 12,
+  tableHeader: 11,
+  tableCell: 12,
+  metricValue: 18,
+  metricValueMd: 16,
+  metricValueSm: 14,
+  pill: 9
+} as const;
+
+export const LINE_SPACING = {
+  tight: 15,
+  normal: 17,
+  relaxed: 20,
+  loose: 22
 } as const;
 
 export const CHART_SERIES = [
-  COLORS.purple,
-  COLORS.cyan,
-  COLORS.green,
-  COLORS.gold,
-  COLORS.violet,
-  COLORS.red
+  COLORS.teal,
+  COLORS.magenta,
+  COLORS.pink,
+  COLORS.teal,
+  COLORS.magenta,
+  COLORS.pink
 ] as const;
 
 export const BRAND = {
@@ -51,9 +83,10 @@ export const BRAND = {
   deckTitle: "Video Marketing Intelligence Report"
 } as const;
 
-export const TOTAL_SLIDES = 13;
+export const SLIDE_W = 13.333;
+export const SLIDE_H = 7.5;
 
-/**
- * pptxgenjs does not expose slide transitions in its public API.
- * Per-object entrance animations are omitted for cross-app compatibility.
- */
+export const ACCENT_BAR_W = 0.06;
+export const PANEL_RADIUS = 0.08;
+
+export const TOTAL_SLIDES = 14;
